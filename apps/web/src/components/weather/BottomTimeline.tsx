@@ -2,7 +2,7 @@ import type { HourlyForecast, DailyForecast } from '@aether/shared';
 import { roundTemp } from '@aether/weather-core';
 import { SEVERITY_COLORS } from '@aether/shared';
 import type { ViewTab } from '../../App';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 
 export type ForecastModel = 'blend' | 'gfs' | 'hrrr' | 'nam';
 
@@ -25,6 +25,7 @@ const TABS: { id: ViewTab; label: string; icon: string }[] = [
 
 export function BottomTimeline({ hourly, daily: _daily, activeTab, onTabChange, activeModel = 'blend', onModelChange }: BottomTimelineProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [expanded, setExpanded] = useState(false);
 
   // Group hourly data by day
   const dayBoundaries: { label: string; startIdx: number }[] = [];
@@ -57,7 +58,33 @@ export function BottomTimeline({ hourly, daily: _daily, activeTab, onTabChange, 
         animation: 'slideUp var(--duration-normal) var(--ease-out)',
       }}
     >
-      {/* Scrollable forecast data rows */}
+      {/* Expand/collapse handle */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '6px',
+          padding: '4px 0',
+          background: 'none',
+          border: 'none',
+          borderBottom: expanded ? '1px solid var(--color-border)' : 'none',
+          color: 'var(--color-text-muted)',
+          fontSize: '0.6rem',
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+        }}
+      >
+        <span style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', display: 'inline-block' }}>
+          {'▲'}
+        </span>
+        {expanded ? 'Collapse hourly forecast' : 'Expand hourly forecast'}
+      </button>
+
+      {/* Scrollable forecast data rows — collapsible */}
+      {expanded && (
       <div
         ref={scrollRef}
         style={{
@@ -65,6 +92,7 @@ export function BottomTimeline({ hourly, daily: _daily, activeTab, onTabChange, 
           overflowY: 'hidden',
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
+          maxHeight: '200px',
         }}
       >
         {/* Day headers row */}
@@ -218,6 +246,7 @@ export function BottomTimeline({ hourly, daily: _daily, activeTab, onTabChange, 
           ))}
         </div>
       </div>
+      )}
 
       {/* Tab bar at very bottom */}
       <div

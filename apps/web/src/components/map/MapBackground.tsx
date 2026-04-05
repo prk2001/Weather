@@ -141,7 +141,7 @@ export function MapBackground({
             Math.round(center.lng * 10000) / 10000,
           );
         }
-      }, 1500); // Wait 1.5s after last pan/zoom before fetching
+      }, 3000); // Wait 3s after last pan/zoom before fetching
     });
 
     leafletMap.current = map;
@@ -189,25 +189,32 @@ export function MapBackground({
 
     switch (layer) {
       case 'radar':
-      case 'rain':
         tileUrl = rainviewerTiles.radar;
         opacity = 0.75;
         break;
+      case 'rain':
+        // Same radar data but higher opacity for precip focus
+        tileUrl = rainviewerTiles.radar;
+        opacity = 0.85;
+        break;
       case 'satellite':
+        // ESRI World Imagery — real satellite photos
+        tileUrl = BASE_MAPS.satellite_base!;
+        opacity = 0.7;
+        break;
       case 'clouds':
+        // RainViewer satellite IR — shows cloud cover
         tileUrl = rainviewerTiles.satellite;
-        opacity = 0.65;
+        opacity = 0.6;
         break;
       case 'temperature':
-        // Use ESRI satellite imagery as a rich base for temperature context
+        // ESRI satellite with radar overlay for context
         tileUrl = BASE_MAPS.satellite_base!;
-        opacity = 0.4;
+        opacity = 0.35;
         break;
       case 'wind':
-        // Wind uses canvas particle overlay, no tile layer needed
-        // but add radar faintly underneath for precipitation context
-        tileUrl = rainviewerTiles.radar;
-        opacity = 0.3;
+        // No tile overlay — wind uses canvas particle animation only
+        tileUrl = null;
         break;
     }
 

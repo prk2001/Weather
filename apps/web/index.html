@@ -59,7 +59,7 @@
               apiResetTime = Date.now() + 60000;
             }
             apiCallCount++;
-            if (apiCallCount > 20) {
+            if (apiCallCount > 60) {
               console.warn('[AETHER] Rate limit: too many API calls');
               return Promise.reject(new Error('Rate limited'));
             }

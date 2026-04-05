@@ -24,12 +24,25 @@ export interface MapControls {
 // ── Tile layer URLs ──────────────────────────────────────────
 // ── Free tile sources (no API key required) ─────────────────
 
-// Dark base map + labels
+// Base maps + labels
 const BASE_MAPS: Record<string, string> = {
   dark: 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',
+  light: 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',
   satellite_base: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
 };
 const BASE_LABELS = 'https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png';
+// const LIGHT_LABELS = 'https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png';
+
+/* OpenWeatherMap tile layers — uncomment when API key is available
+const OWM_KEY = 'YOUR_KEY_HERE';
+const OWM_TILES = {
+  temp: `https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${OWM_KEY}`,
+  wind: `https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=${OWM_KEY}`,
+  clouds: `https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${OWM_KEY}`,
+  precip: `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${OWM_KEY}`,
+  pressure: `https://tile.openweathermap.org/map/pressure_new/{z}/{x}/{y}.png?appid=${OWM_KEY}`,
+};
+*/
 
 // RainViewer — free real-time radar and satellite IR composites (global, updated every 10 min)
 const RAINVIEWER_API = 'https://api.rainviewer.com/public/weather-maps.json';
@@ -186,38 +199,53 @@ export function MapBackground({
     }
     overlayRef.current = null;
 
-    // Each layer can have multiple tile overlays stacked
+    // Each layer gets DISTINCT visuals — not just the same radar tiles
     const overlays: { url: string; opacity: number }[] = [];
+    // CSS filter applied to tile pane to change color treatment per layer
+    let tileFilter = '';
 
     switch (layer) {
       case 'radar':
-        if (rainviewerTiles.radar) overlays.push({ url: rainviewerTiles.radar, opacity: 0.75 });
-        break;
-      case 'rain':
-        if (rainviewerTiles.radar) overlays.push({ url: rainviewerTiles.radar, opacity: 0.85 });
+        // Standard radar: green/yellow/red precipitation returns
+        if (rainviewerTiles.radar) overlays.push({ url: rainviewerTiles.radar, opacity: 0.8 });
+        tileFilter = 'saturate(1.3)';
         break;
       case 'satellite':
-        // ESRI satellite imagery + RainViewer radar on top to show precip
-        overlays.push({ url: BASE_MAPS.satellite_base!, opacity: 0.65 });
-        if (rainviewerTiles.radar) overlays.push({ url: rainviewerTiles.radar, opacity: 0.5 });
-        if (rainviewerTiles.satellite) overlays.push({ url: rainviewerTiles.satellite, opacity: 0.35 });
-        break;
-      case 'clouds':
-        // RainViewer satellite IR at high opacity so clouds are clearly visible
-        if (rainviewerTiles.satellite) overlays.push({ url: rainviewerTiles.satellite, opacity: 0.85 });
-        break;
-      case 'temperature':
-        // Show radar for precipitation context on temp view
-        if (rainviewerTiles.radar) overlays.push({ url: rainviewerTiles.radar, opacity: 0.4 });
+        // ESRI satellite photos as base + RainViewer satellite IR clouds on top
+        // This shows real earth imagery with visible cloud cover
+        overlays.push({ url: BASE_MAPS.satellite_base!, opacity: 0.85 });
+        if (rainviewerTiles.satellite) overlays.push({ url: rainviewerTiles.satellite, opacity: 0.55 });
+        tileFilter = 'brightness(1.05) contrast(1.15) saturate(0.9)';
         break;
       case 'wind':
-        // Faint radar underneath the wind particles
-        if (rainviewerTiles.radar) overlays.push({ url: rainviewerTiles.radar, opacity: 0.25 });
+        // No tile overlay — canvas wind animation provides the visual
+        // Dim the base map and add green/blue tint like Windy's wind view
+        tileFilter = 'brightness(0.5) saturate(0.8) sepia(0.2) hue-rotate(120deg)';
+        break;
+      case 'rain':
+        // Radar with blue/purple tint for precipitation focus
+        if (rainviewerTiles.radar) overlays.push({ url: rainviewerTiles.radar, opacity: 0.85 });
+        tileFilter = 'saturate(1.5) hue-rotate(20deg)';
+        break;
+      case 'temperature':
+        // NO radar — just the temperature gradient overlay on dark map
+        tileFilter = 'brightness(0.6)';
+        break;
+      case 'clouds':
+        // Satellite IR — cloud formations in grayscale/blue
+        if (rainviewerTiles.satellite) overlays.push({ url: rainviewerTiles.satellite, opacity: 0.9 });
+        tileFilter = 'saturate(0.5) brightness(1.2)';
         break;
     }
 
-    // Add all overlay layers
-    const layers: L.TileLayer[] = [];
+    // Apply CSS filter to make each layer look different
+    const tilePane = map.getPane('tilePane');
+    if (tilePane) {
+      tilePane.style.filter = tileFilter;
+    }
+
+    // Add overlay tile layers
+    const tileLayers: L.TileLayer[] = [];
     for (const ov of overlays) {
       const isRV = ov.url.includes('rainviewer');
       const tl = L.tileLayer(ov.url, {
@@ -227,12 +255,10 @@ export function MapBackground({
         errorTileUrl: 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',
       });
       tl.addTo(map);
-      layers.push(tl);
+      tileLayers.push(tl);
     }
-    // Store first layer ref for cleanup (we'll clean all on next switch)
-    if (layers[0]) overlayRef.current = layers[0];
-    // Store extras for cleanup
-    (map as unknown as Record<string, L.TileLayer[]>)._aetherOverlays = layers;
+    if (tileLayers[0]) overlayRef.current = tileLayers[0];
+    (map as unknown as Record<string, L.TileLayer[]>)._aetherOverlays = tileLayers;
   }, [layer, rainviewerTiles]);
 
   // Weather effects overlay

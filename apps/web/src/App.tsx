@@ -11,6 +11,8 @@ import { DetailPanel } from './components/weather/DetailPanel';
 import { TripPlanner } from './components/weather/TripPlanner';
 import { StormTracker } from './components/weather/StormTracker';
 import { HealthAqiPanel } from './components/weather/HealthAqiPanel';
+import { MinutePrecip } from './components/weather/MinutePrecip';
+import { LayerLegend } from './components/map/LayerLegend';
 import type { ForecastModel } from './components/weather/BottomTimeline';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useEffect, useState, useRef } from 'react';
@@ -93,6 +95,14 @@ export function App() {
 
       {/* Layer selector sidebar */}
       <LayerSidebar activeLayer={activeLayer} onLayerChange={setActiveLayer} mapControls={mapControlsRef.current} />
+
+      {/* Layer color legend */}
+      <LayerLegend layer={activeLayer} />
+
+      {/* Minute-by-minute precipitation (Dark Sky style) */}
+      {hourly.length > 0 && current && (
+        <MinutePrecip hourly={hourly} locationName={useWeatherStore.getState().locationName} />
+      )}
 
       {/* Bottom hourly timeline with real NWS forecast data */}
       {hourly.length > 0 && (

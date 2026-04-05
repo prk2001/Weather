@@ -9,6 +9,8 @@ import { TopBar } from './components/layout/TopBar';
 import { PremiumModal } from './components/layout/PremiumModal';
 import { DetailPanel } from './components/weather/DetailPanel';
 import { TripPlanner } from './components/weather/TripPlanner';
+import { StormTracker } from './components/weather/StormTracker';
+import type { ForecastModel } from './components/weather/BottomTimeline';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useEffect, useState, useRef } from 'react';
 
@@ -20,11 +22,13 @@ export function App() {
   useKeyboardShortcuts();
   const [activeTab, setActiveTab] = useState<ViewTab>('basic');
   const [activeLayer, setActiveLayer] = useState<MapLayer>('radar');
+  const [activeModel, setActiveModel] = useState<ForecastModel>('blend');
   const [showPremium, setShowPremium] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
   const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
   const [alertsDismissed, setAlertsDismissed] = useState(false);
   const [showTrip, setShowTrip] = useState(false);
+  const [showStormTracker, setShowStormTracker] = useState(false);
   const mapControlsRef = useRef<MapControls | null>(null);
 
   useEffect(() => {
@@ -95,6 +99,8 @@ export function App() {
           daily={daily}
           activeTab={activeTab}
           onTabChange={setActiveTab}
+          activeModel={activeModel}
+          onModelChange={setActiveModel}
         />
       )}
 
@@ -110,6 +116,48 @@ export function App() {
 
       {/* Trip weather planner */}
       {showTrip && <TripPlanner onClose={() => setShowTrip(false)} />}
+
+      {/* Storm tracker / hurricane tracker / regional alerts */}
+      {showStormTracker && current && (
+        <StormTracker
+          lat={current.location.lat}
+          lon={current.location.lon}
+          onClose={() => setShowStormTracker(false)}
+        />
+      )}
+
+      {/* Storm tracker button — bottom left above wind compass */}
+      <button
+        onClick={() => setShowStormTracker(true)}
+        className="glass-panel"
+        style={{
+          position: 'absolute',
+          bottom: '330px',
+          left: 'var(--space-4)',
+          zIndex: 5,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '6px 12px',
+          cursor: 'pointer',
+          border: '1px solid var(--color-border)',
+          color: 'var(--color-text-secondary)',
+          fontSize: '0.7rem',
+          fontFamily: 'inherit',
+          fontWeight: 500,
+        }}
+      >
+        {'🛡️'} Storm Tracker
+        {alerts.length > 0 && (
+          <span style={{
+            fontSize: '0.55rem', fontWeight: 700,
+            padding: '1px 5px', borderRadius: 'var(--radius-full)',
+            background: 'var(--color-severity-red)', color: '#fff',
+          }}>
+            {alerts.length}
+          </span>
+        )}
+      </button>
 
       {/* Premium subscription modal */}
       {showPremium && <PremiumModal onClose={() => setShowPremium(false)} />}

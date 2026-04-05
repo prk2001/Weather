@@ -249,10 +249,13 @@ export function MapBackground({
         }}
       />
 
-      {/* Wind direction indicator overlay */}
+      {/* Wind direction particles (wind layer only) */}
       {layer === 'wind' && (
         <WindDirectionOverlay windSpeed={windSpeed} windDir={windDir} />
       )}
+
+      {/* Wind compass rose — always visible */}
+      <WindCompass windSpeed={windSpeed} windDir={windDir} />
 
       {/* Precipitation animation overlay */}
       {isRaining && <RainOverlay intensity={condition === 'heavy_rain' ? 3 : 1} />}
@@ -571,5 +574,37 @@ function SnowOverlay() {
         opacity: 0.4,
       }}
     />
+  );
+}
+
+// ── Wind Compass Rose ────────────────────────────────────────
+
+function WindCompass({ windSpeed, windDir }: { windSpeed: number; windDir: number }) {
+  const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  const arrowRotation = (windDir + 180) % 360;
+
+  return (
+    <div style={{ position: 'absolute', bottom: '240px', left: 'var(--space-4)', zIndex: 5, pointerEvents: 'none' }}>
+      <div className="glass-panel" style={{ width: '76px', height: '76px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', padding: 0 }}>
+        {dirs.map((d, i) => {
+          const angle = i * 45;
+          const rad = (angle - 90) * (Math.PI / 180);
+          const r = 30;
+          return (
+            <span key={d} style={{ position: 'absolute', left: `${38 + Math.cos(rad) * r}px`, top: `${38 + Math.sin(rad) * r}px`, transform: 'translate(-50%, -50%)', fontSize: '0.4rem', fontWeight: d === 'N' ? 700 : 400, color: d === 'N' ? 'var(--color-accent)' : 'var(--color-text-muted)' }}>
+              {d}
+            </span>
+          );
+        })}
+        <svg width="32" height="32" viewBox="0 0 32 32" style={{ transform: `rotate(${arrowRotation}deg)`, transition: 'transform 0.8s ease' }}>
+          <line x1="16" y1="26" x2="16" y2="5" stroke="var(--color-accent)" strokeWidth="2" strokeLinecap="round" />
+          <polygon points="16,3 11,11 21,11" fill="var(--color-accent)" />
+          <line x1="12" y1="26" x2="20" y2="26" stroke="var(--color-accent)" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+        <div style={{ position: 'absolute', bottom: '-4px', left: '50%', transform: 'translateX(-50%)', fontSize: '0.5rem', fontWeight: 700, color: 'var(--color-text)', background: 'var(--color-surface-solid)', padding: '1px 5px', borderRadius: 'var(--radius-full)', border: '1px solid var(--color-border)', fontFeatureSettings: "'tnum' on", whiteSpace: 'nowrap' }}>
+          {windSpeed} mph
+        </div>
+      </div>
+    </div>
   );
 }

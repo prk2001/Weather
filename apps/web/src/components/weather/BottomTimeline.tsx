@@ -4,11 +4,15 @@ import { SEVERITY_COLORS } from '@aether/shared';
 import type { ViewTab } from '../../App';
 import { useRef } from 'react';
 
+export type ForecastModel = 'blend' | 'gfs' | 'hrrr' | 'nam';
+
 interface BottomTimelineProps {
   hourly: HourlyForecast[];
   daily: DailyForecast[];
   activeTab: ViewTab;
   onTabChange: (tab: ViewTab) => void;
+  activeModel?: ForecastModel;
+  onModelChange?: (model: ForecastModel) => void;
 }
 
 const TABS: { id: ViewTab; label: string; icon: string }[] = [
@@ -19,7 +23,7 @@ const TABS: { id: ViewTab; label: string; icon: string }[] = [
   { id: 'activities', label: 'Activities', icon: '\u{1F3C3}' },
 ];
 
-export function BottomTimeline({ hourly, daily: _daily, activeTab, onTabChange }: BottomTimelineProps) {
+export function BottomTimeline({ hourly, daily: _daily, activeTab, onTabChange, activeModel = 'blend', onModelChange }: BottomTimelineProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Group hourly data by day
@@ -257,16 +261,32 @@ export function BottomTimeline({ hourly, daily: _daily, activeTab, onTabChange }
         <div style={{ flex: 1 }} />
 
         {/* Model selector */}
-        <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-          <span style={{ padding: '2px 8px', borderRadius: 'var(--radius-sm)', background: 'rgba(239, 68, 68, 0.2)', color: '#EF4444', fontWeight: 600 }}>
-            ECMWF
-          </span>
-          <span style={{ padding: '2px 8px', borderRadius: 'var(--radius-sm)', background: 'rgba(255,255,255,0.05)' }}>
-            GFS
-          </span>
-          <span style={{ padding: '2px 8px', borderRadius: 'var(--radius-sm)', background: 'rgba(255,255,255,0.05)' }}>
-            HRRR
-          </span>
+        <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '3px' }}>
+          {([
+            { id: 'blend' as ForecastModel, label: 'Blended', color: '#2dd4bf' },
+            { id: 'gfs' as ForecastModel, label: 'GFS', color: '#60a5fa' },
+            { id: 'hrrr' as ForecastModel, label: 'HRRR', color: '#f87171' },
+            { id: 'nam' as ForecastModel, label: 'NAM', color: '#fbbf24' },
+          ]).map((m) => (
+            <button
+              key={m.id}
+              onClick={() => onModelChange?.(m.id)}
+              style={{
+                padding: '2px 8px',
+                borderRadius: 'var(--radius-sm)',
+                border: 'none',
+                background: activeModel === m.id ? `${m.color}30` : 'rgba(255,255,255,0.04)',
+                color: activeModel === m.id ? m.color : 'var(--color-text-muted)',
+                fontWeight: activeModel === m.id ? 700 : 400,
+                fontSize: '0.6rem',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                transition: 'all var(--duration-fast)',
+              }}
+            >
+              {m.label}
+            </button>
+          ))}
         </div>
 
         {/* Legend scale */}

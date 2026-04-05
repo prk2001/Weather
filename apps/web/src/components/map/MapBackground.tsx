@@ -81,7 +81,7 @@ export function MapBackground({
       center: [lat, lon],
       zoom: 7,
       minZoom: 3,
-      maxZoom: 12,
+      maxZoom: 18,
       zoomControl: false,
       attributionControl: false,
       dragging: true,
@@ -91,16 +91,18 @@ export function MapBackground({
       keyboard: false,
     });
 
-    // Dark base map
+    // Dark base map — tiles go up to 20, so no upscaling needed
     L.tileLayer(BASE_MAPS.dark!, {
       subdomains: 'abcd',
-      maxZoom: 12,
+      maxZoom: 18,
+      errorTileUrl: 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',
     }).addTo(map);
 
     // Labels on top
     L.tileLayer(BASE_LABELS, {
       subdomains: 'abcd',
-      maxZoom: 12,
+      maxZoom: 18,
+      errorTileUrl: 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',
       pane: 'overlayPane',
     }).addTo(map);
 
@@ -149,7 +151,7 @@ export function MapBackground({
       mapControlsRef.current = {
         zoomIn: () => map.zoomIn(),
         zoomOut: () => map.zoomOut(),
-        flyTo: (flyLat, flyLon, zoom = 7) => map.flyTo([flyLat, flyLon], zoom),
+        flyTo: (flyLat, flyLon, zoom = 8) => map.flyTo([flyLat, flyLon], zoom),
       };
     }
 
@@ -216,7 +218,7 @@ export function MapBackground({
       const overlay = L.tileLayer(tileUrl, {
         opacity,
         maxNativeZoom: isRainViewer ? 12 : 18,
-        maxZoom: 19,
+        maxZoom: 18,
         errorTileUrl: 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',
       });
       overlay.addTo(map);

@@ -179,65 +179,60 @@ export function MapBackground({
     const map = leafletMap.current;
     if (!map) return;
 
-    // Remove old overlay
-    if (overlayRef.current) {
-      map.removeLayer(overlayRef.current);
-      overlayRef.current = null;
+    // Remove all previous overlays
+    const prevOverlays = (map as unknown as Record<string, L.TileLayer[]>)._aetherOverlays ?? [];
+    for (const ol of prevOverlays) {
+      map.removeLayer(ol);
     }
+    overlayRef.current = null;
 
-    // Layer → tile mapping (all free sources)
-    // radar + rain → RainViewer radar composite (live precipitation)
-    // satellite + clouds → RainViewer satellite IR (live cloud imagery)
-    // wind → no tile overlay (canvas wind direction particles instead)
-    // temperature → satellite base map (ESRI World Imagery) for visual context
-
-    let tileUrl: string | null = null;
-    let opacity = 0.7;
+    // Each layer can have multiple tile overlays stacked
+    const overlays: { url: string; opacity: number }[] = [];
 
     switch (layer) {
       case 'radar':
-        tileUrl = rainviewerTiles.radar;
-        opacity = 0.75;
+        if (rainviewerTiles.radar) overlays.push({ url: rainviewerTiles.radar, opacity: 0.75 });
         break;
       case 'rain':
-        // Same radar data but higher opacity for precip focus
-        tileUrl = rainviewerTiles.radar;
-        opacity = 0.85;
+        if (rainviewerTiles.radar) overlays.push({ url: rainviewerTiles.radar, opacity: 0.85 });
         break;
       case 'satellite':
-        // ESRI World Imagery — real satellite photos
-        tileUrl = BASE_MAPS.satellite_base!;
-        opacity = 0.7;
+        // ESRI satellite imagery + RainViewer radar on top to show precip
+        overlays.push({ url: BASE_MAPS.satellite_base!, opacity: 0.65 });
+        if (rainviewerTiles.radar) overlays.push({ url: rainviewerTiles.radar, opacity: 0.5 });
+        if (rainviewerTiles.satellite) overlays.push({ url: rainviewerTiles.satellite, opacity: 0.35 });
         break;
       case 'clouds':
-        // RainViewer satellite IR — shows cloud cover
-        tileUrl = rainviewerTiles.satellite;
-        opacity = 0.6;
+        // RainViewer satellite IR at high opacity so clouds are clearly visible
+        if (rainviewerTiles.satellite) overlays.push({ url: rainviewerTiles.satellite, opacity: 0.85 });
         break;
       case 'temperature':
-        // ESRI satellite with radar overlay for context
-        tileUrl = BASE_MAPS.satellite_base!;
-        opacity = 0.35;
+        // Show radar for precipitation context on temp view
+        if (rainviewerTiles.radar) overlays.push({ url: rainviewerTiles.radar, opacity: 0.4 });
         break;
       case 'wind':
-        // No tile overlay — wind uses canvas particle animation only
-        tileUrl = null;
+        // Faint radar underneath the wind particles
+        if (rainviewerTiles.radar) overlays.push({ url: rainviewerTiles.radar, opacity: 0.25 });
         break;
     }
 
-    if (tileUrl) {
-      // maxNativeZoom: highest zoom the tile server supports
-      // maxZoom: allow user to zoom further (tiles upscale gracefully)
-      const isRainViewer = tileUrl.includes('rainviewer');
-      const overlay = L.tileLayer(tileUrl, {
-        opacity,
-        maxNativeZoom: isRainViewer ? 12 : 15,
+    // Add all overlay layers
+    const layers: L.TileLayer[] = [];
+    for (const ov of overlays) {
+      const isRV = ov.url.includes('rainviewer');
+      const tl = L.tileLayer(ov.url, {
+        opacity: ov.opacity,
+        maxNativeZoom: isRV ? 12 : 15,
         maxZoom: 15,
         errorTileUrl: 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',
       });
-      overlay.addTo(map);
-      overlayRef.current = overlay;
+      tl.addTo(map);
+      layers.push(tl);
     }
+    // Store first layer ref for cleanup (we'll clean all on next switch)
+    if (layers[0]) overlayRef.current = layers[0];
+    // Store extras for cleanup
+    (map as unknown as Record<string, L.TileLayer[]>)._aetherOverlays = layers;
   }, [layer, rainviewerTiles]);
 
   // Weather effects overlay
@@ -270,6 +265,15 @@ export function MapBackground({
 
       {/* Wind compass rose — always visible */}
       <WindCompass windSpeed={windSpeed} windDir={windDir} />
+
+      {/* Temperature heatmap overlay — latitude-based warm/cool gradient */}
+      {layer === 'temperature' && (
+        <div style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1,
+          background: 'linear-gradient(180deg, rgba(59,130,246,0.25) 0%, rgba(34,197,94,0.2) 25%, rgba(234,179,8,0.2) 45%, rgba(249,115,22,0.25) 65%, rgba(239,68,68,0.25) 85%, rgba(153,27,27,0.3) 100%)',
+          mixBlendMode: 'screen',
+        }} />
+      )}
 
       {/* Precipitation animation overlay */}
       {isRaining && <RainOverlay intensity={condition === 'heavy_rain' ? 3 : 1} />}
@@ -345,7 +349,8 @@ function WindDirectionOverlay({
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      const baseSpeed = windSpeed * 0.3;
+      // Minimum speed of 1 so particles always move visibly even at 0 mph
+      const baseSpeed = Math.max(1, windSpeed * 0.3);
 
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i]!;
@@ -369,7 +374,7 @@ function WindDirectionOverlay({
             : lifePct > 0.7
               ? (1 - lifePct) / 0.3
               : 1;
-        const alpha = fade * p.opacity * 0.4;
+        const alpha = fade * p.opacity * 0.7;
 
         if (alpha > 0.02) {
           ctx.beginPath();

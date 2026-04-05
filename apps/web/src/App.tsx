@@ -10,6 +10,7 @@ import { PremiumModal } from './components/layout/PremiumModal';
 import { DetailPanel } from './components/weather/DetailPanel';
 import { TripPlanner } from './components/weather/TripPlanner';
 import { StormTracker } from './components/weather/StormTracker';
+import { HealthAqiPanel } from './components/weather/HealthAqiPanel';
 import type { ForecastModel } from './components/weather/BottomTimeline';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useEffect, useState, useRef } from 'react';
@@ -29,6 +30,7 @@ export function App() {
   const [alertsDismissed, setAlertsDismissed] = useState(false);
   const [showTrip, setShowTrip] = useState(false);
   const [showStormTracker, setShowStormTracker] = useState(false);
+  const [showHealthAqi, setShowHealthAqi] = useState(false);
   const mapControlsRef = useRef<MapControls | null>(null);
 
   useEffect(() => {
@@ -98,7 +100,10 @@ export function App() {
           hourly={hourly}
           daily={daily}
           activeTab={activeTab}
-          onTabChange={setActiveTab}
+          onTabChange={(tab) => {
+            setActiveTab(tab);
+            if (tab === 'health') setShowHealthAqi(true);
+          }}
           activeModel={activeModel}
           onModelChange={setActiveModel}
         />
@@ -111,6 +116,16 @@ export function App() {
           hourly={hourly}
           dayIndex={selectedDayIndex}
           onClose={() => { setShowDetail(false); setSelectedDayIndex(null); }}
+        />
+      )}
+
+      {/* Health & AQI panel */}
+      {showHealthAqi && current && (
+        <HealthAqiPanel
+          conditions={current}
+          lat={current.location.lat}
+          lon={current.location.lon}
+          onClose={() => setShowHealthAqi(false)}
         />
       )}
 

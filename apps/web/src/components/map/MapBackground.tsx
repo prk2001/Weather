@@ -81,7 +81,7 @@ export function MapBackground({
       center: [lat, lon],
       zoom: 7,
       minZoom: 3,
-      maxZoom: 18,
+      maxZoom: 15,
       zoomControl: false,
       attributionControl: false,
       dragging: true,
@@ -91,17 +91,19 @@ export function MapBackground({
       keyboard: false,
     });
 
-    // Dark base map — tiles go up to 20, so no upscaling needed
+    // Dark base map — cap at native zoom 15 to avoid "Zoom Level Not Supported" tiles
     L.tileLayer(BASE_MAPS.dark!, {
       subdomains: 'abcd',
-      maxZoom: 18,
+      maxNativeZoom: 15,
+      maxZoom: 15,
       errorTileUrl: 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',
     }).addTo(map);
 
     // Labels on top
     L.tileLayer(BASE_LABELS, {
       subdomains: 'abcd',
-      maxZoom: 18,
+      maxNativeZoom: 15,
+      maxZoom: 15,
       errorTileUrl: 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',
       pane: 'overlayPane',
     }).addTo(map);
@@ -130,18 +132,23 @@ export function MapBackground({
     });
 
     // Pan/zoom the map → auto-update weather for new center (debounced)
+    // Pan/zoom → auto-update weather (debounced, US-only)
     let moveTimer: ReturnType<typeof setTimeout> | null = null;
     map.on('moveend', () => {
       if (moveTimer) clearTimeout(moveTimer);
       moveTimer = setTimeout(() => {
         const center = map.getCenter();
-        if (onSpotForecast) {
+        // Only fetch if within approximate US/territories bounds
+        // NWS API only covers US — skip ocean/foreign locations
+        const inUS = center.lat >= 24 && center.lat <= 50
+          && center.lng >= -125 && center.lng <= -66;
+        if (onSpotForecast && inUS) {
           onSpotForecast(
             Math.round(center.lat * 10000) / 10000,
             Math.round(center.lng * 10000) / 10000,
           );
         }
-      }, 3000); // Wait 3s after last pan/zoom before fetching
+      }, 3000);
     });
 
     leafletMap.current = map;
@@ -224,8 +231,8 @@ export function MapBackground({
       const isRainViewer = tileUrl.includes('rainviewer');
       const overlay = L.tileLayer(tileUrl, {
         opacity,
-        maxNativeZoom: isRainViewer ? 12 : 18,
-        maxZoom: 18,
+        maxNativeZoom: isRainViewer ? 12 : 15,
+        maxZoom: 15,
         errorTileUrl: 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',
       });
       overlay.addTo(map);

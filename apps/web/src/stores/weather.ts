@@ -57,8 +57,10 @@ export const useWeatherStore = create<WeatherState>((set) => ({
       });
     } catch (err) {
       console.error('[AETHER] Weather fetch failed:', err);
+      // Only show error if we have no existing data — otherwise silently keep last valid data
+      const hasData = useWeatherStore.getState().current !== null;
       set({
-        error: err instanceof Error ? err.message : 'Failed to fetch weather data',
+        error: hasData ? null : (err instanceof Error ? err.message : 'Failed to fetch weather data'),
         loading: false,
       });
     }

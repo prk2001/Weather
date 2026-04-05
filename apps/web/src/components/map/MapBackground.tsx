@@ -109,8 +109,8 @@ export function MapBackground({
       className: '',
       html: `<div style="
         width: 14px; height: 14px; border-radius: 50%;
-        background: #6366f1; border: 2px solid white;
-        box-shadow: 0 0 12px rgba(99,102,241,0.6), 0 2px 6px rgba(0,0,0,0.4);
+        background: #2dd4bf; border: 2px solid white;
+        box-shadow: 0 0 12px rgba(45,212,191,0.6), 0 2px 6px rgba(0,0,0,0.4);
       "></div>`,
       iconSize: [14, 14],
       iconAnchor: [7, 7],

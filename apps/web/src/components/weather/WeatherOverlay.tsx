@@ -82,7 +82,7 @@ export function WeatherOverlay({ conditions, daily, hourly, onDayClick, selected
             fontStyle: 'italic',
             lineHeight: 1.4,
             padding: 'var(--space-2) var(--space-3)',
-            background: 'rgba(99, 102, 241, 0.08)',
+            background: 'rgba(45, 212, 191, 0.08)',
             borderRadius: 'var(--radius-md)',
             borderLeft: '2px solid var(--color-accent)',
           }}
@@ -91,46 +91,25 @@ export function WeatherOverlay({ conditions, daily, hourly, onDayClick, selected
         </div>
       </div>
 
-      {/* ── Activity Quick-Scores — unique to AETHER ── */}
+      {/* ── Go / No-Go + Activity Score Rings — AETHER signature ── */}
       {topActivities.length > 0 && (
-        <div
-          style={{
-            padding: '0 var(--space-4) var(--space-3)',
-            display: 'flex',
-            gap: '6px',
-            flexWrap: 'wrap',
-          }}
-        >
-          {topActivities.map((act) => (
-            <div
-              key={act.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '3px',
-                padding: '2px 8px',
-                borderRadius: 'var(--radius-full)',
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid var(--color-border)',
-                fontSize: '0.65rem',
-              }}
-            >
-              <span>{act.icon}</span>
-              <span style={{
-                fontWeight: 700,
-                fontSize: '0.6rem',
-                padding: '1px 4px',
-                borderRadius: 'var(--radius-full)',
-                background: scoreColor(act.score),
-                color: '#fff',
-                fontFeatureSettings: "'tnum' on",
-                minWidth: '20px',
-                textAlign: 'center',
-              }}>
-                {act.score}
-              </span>
-            </div>
-          ))}
+        <div style={{ padding: '0 var(--space-4) var(--space-3)' }}>
+          {/* Go/No-Go traffic light */}
+          <GoNoGoIndicator activities={topActivities} />
+
+          {/* Circular score rings */}
+          <div
+            style={{
+              display: 'flex',
+              gap: '8px',
+              marginTop: 'var(--space-2)',
+              justifyContent: 'center',
+            }}
+          >
+            {topActivities.map((act) => (
+              <ScoreRing key={act.id} icon={act.icon} score={act.score} />
+            ))}
+          </div>
         </div>
       )}
 
@@ -157,7 +136,7 @@ export function WeatherOverlay({ conditions, daily, hourly, onDayClick, selected
                 alignItems: 'center',
                 gap: '2px',
                 padding: 'var(--space-2) var(--space-1)',
-                background: isSelected ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
+                background: isSelected ? 'rgba(45, 212, 191, 0.15)' : 'transparent',
                 border: 'none',
                 borderRight: i < 3 ? '1px solid var(--color-border)' : 'none',
                 color: 'var(--color-text)',
@@ -166,7 +145,7 @@ export function WeatherOverlay({ conditions, daily, hourly, onDayClick, selected
                 transition: 'background var(--duration-fast)',
               }}
               onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
-              onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = isSelected ? 'rgba(99, 102, 241, 0.15)' : 'transparent'; }}
+              onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = isSelected ? 'rgba(45, 212, 191, 0.15)' : 'transparent'; }}
             >
               <span style={{ fontSize: '0.55rem', fontWeight: 700, color: 'var(--color-text-muted)', letterSpacing: '0.08em' }}>
                 {dayLabel}
@@ -227,6 +206,82 @@ export function WeatherOverlay({ conditions, daily, hourly, onDayClick, selected
 }
 
 // ── Sub-components ───────────────────────────────────────────
+
+// ── Go / No-Go Indicator ─────────────────────────────────────
+
+function GoNoGoIndicator({ activities }: { activities: { score: number }[] }) {
+  const avgScore = activities.reduce((s, a) => s + a.score, 0) / activities.length;
+  const status = avgScore >= 75 ? 'GO' : avgScore >= 45 ? 'MAYBE' : 'NO-GO';
+  const color = avgScore >= 75 ? 'var(--color-go)' : avgScore >= 45 ? 'var(--color-maybe)' : 'var(--color-nogo)';
+  const label = avgScore >= 75 ? 'Great for outdoor activities' : avgScore >= 45 ? 'Some activities OK' : 'Stay indoors recommended';
+
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      padding: '4px 10px',
+      borderRadius: 'var(--radius-full)',
+      background: `${color}11`,
+      border: `1px solid ${color}33`,
+    }}>
+      <div style={{
+        width: '8px',
+        height: '8px',
+        borderRadius: '50%',
+        background: color,
+        boxShadow: `0 0 6px ${color}`,
+      }} />
+      <span style={{ fontSize: '0.7rem', fontWeight: 700, color, letterSpacing: '0.05em' }}>
+        {status}
+      </span>
+      <span style={{ fontSize: '0.6rem', color: 'var(--color-text-muted)' }}>
+        {label}
+      </span>
+    </div>
+  );
+}
+
+// ── Circular Score Ring ───────────────────────────────────────
+
+function ScoreRing({ icon, score }: { icon: string; score: number }) {
+  const size = 42;
+  const strokeWidth = 3;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (score / 100) * circumference;
+  const color = score >= 80 ? 'var(--color-go)' : score >= 50 ? 'var(--color-maybe)' : 'var(--color-nogo)';
+
+  return (
+    <div style={{ position: 'relative', width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <svg width={size} height={size} style={{ position: 'absolute', transform: 'rotate(-90deg)' }}>
+        {/* Background circle */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="rgba(255,255,255,0.06)"
+          strokeWidth={strokeWidth}
+        />
+        {/* Score arc */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke={color}
+          strokeWidth={strokeWidth}
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+        />
+      </svg>
+      <span style={{ fontSize: '1rem', zIndex: 1 }}>{icon}</span>
+    </div>
+  );
+}
 
 function StatChip({ icon, value, highlight }: { icon: string; value: string; highlight?: boolean }) {
   return (
@@ -293,14 +348,6 @@ function getTopActivities(hour: HourlyForecast) {
     ...a,
     score: scoreActivity(a.id, hour).score,
   })).sort((a, b) => b.score - a.score).slice(0, 5);
-}
-
-function scoreColor(score: number): string {
-  if (score >= 80) return '#22C55E';
-  if (score >= 60) return '#84CC16';
-  if (score >= 40) return '#EAB308';
-  if (score >= 20) return '#F97316';
-  return '#EF4444';
 }
 
 function precipColor(prob: number): string {

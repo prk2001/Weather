@@ -461,12 +461,12 @@ function tempBarColor(temp: number): string {
   if (temp >= 70) return SEVERITY_COLORS.yellow;
   if (temp >= 50) return SEVERITY_COLORS.green;
   if (temp >= 32) return '#60A5FA';
-  return '#818CF8';
+  return '#2dd4bf';
 }
 
 function tempRangeGradient(low: number, high: number): string {
   const lowColor =
-    low < 32 ? '#818CF8' : low < 50 ? '#60A5FA' : low < 65 ? SEVERITY_COLORS.green : SEVERITY_COLORS.yellow;
+    low < 32 ? '#2dd4bf' : low < 50 ? '#60A5FA' : low < 65 ? SEVERITY_COLORS.green : SEVERITY_COLORS.yellow;
   const highColor =
     high >= 95 ? SEVERITY_COLORS.red : high >= 85 ? SEVERITY_COLORS.orange : high >= 70 ? SEVERITY_COLORS.yellow : SEVERITY_COLORS.green;
   return `linear-gradient(to right, ${lowColor}, ${highColor})`;

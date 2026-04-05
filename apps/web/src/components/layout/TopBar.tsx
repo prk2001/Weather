@@ -42,12 +42,12 @@ export function TopBar({ onPremiumClick, onSearch, onTripClick }: TopBarProps) {
           width: '28px',
           height: '28px',
           borderRadius: 'var(--radius-md)',
-          background: 'linear-gradient(135deg, var(--color-accent), #a78bfa)',
+          background: 'linear-gradient(135deg, #2dd4bf, #14b8a6)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           fontSize: '0.8rem',
-          boxShadow: '0 2px 8px rgba(124, 109, 240, 0.3)',
+          boxShadow: '0 2px 8px rgba(45, 212, 191, 0.3)',
         }}>
           {'☁'}
         </div>
@@ -56,7 +56,7 @@ export function TopBar({ onPremiumClick, onSearch, onTripClick }: TopBarProps) {
             fontSize: '0.85rem',
             fontWeight: 600,
             letterSpacing: '0.12em',
-            background: 'linear-gradient(135deg, #c4b5fd, #7c6df0)',
+            background: 'linear-gradient(135deg, #5eead4, #2dd4bf, #14b8a6)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
           }}>

@@ -345,7 +345,7 @@ function tempCellColor(temp: number): string {
   if (temp >= 75) return 'rgba(234, 179, 8, 0.12)';
   if (temp >= 65) return 'rgba(34, 197, 94, 0.1)';
   if (temp >= 50) return 'rgba(59, 130, 246, 0.08)';
-  if (temp >= 35) return 'rgba(99, 102, 241, 0.1)';
+  if (temp >= 35) return 'rgba(45, 212, 191, 0.1)';
   return 'rgba(139, 92, 246, 0.12)';
 }
 

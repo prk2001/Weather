@@ -203,5 +203,5 @@ function tempBarColor(temp: number): string {
   if (temp >= 70) return SEVERITY_COLORS.yellow;
   if (temp >= 50) return SEVERITY_COLORS.green;
   if (temp >= 32) return '#60A5FA';
-  return '#818CF8';
+  return '#2dd4bf';
 }

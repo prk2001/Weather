@@ -25,7 +25,7 @@ const TIERS = [
     price: '$4.99',
     period: '/month',
     yearly: '$39.99/year (save 33%)',
-    color: '#6366F1',
+    color: '#2dd4bf',
     popular: true,
     features: [
       '48-hour hourly forecast',
@@ -149,7 +149,7 @@ export function PremiumModal({ onClose }: PremiumModalProps) {
                 padding: 'var(--space-5)',
                 position: 'relative',
                 background: tier.popular
-                  ? 'rgba(99, 102, 241, 0.05)'
+                  ? 'rgba(45, 212, 191, 0.05)'
                   : 'transparent',
               }}
             >

@@ -1,0 +1,265 @@
+// ============================================================
+// AETHER PostgreSQL Schema (Users & App Data)
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Users ────────────────────────────────────────────────────
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  authProvider  String   @map("auth_provider")
+  authId        String   @unique @map("auth_id")
+  tier          Tier     @default(FREE)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  preferences         UserPreferences?
+  locations           SavedLocation[]
+  activityProfiles    ActivityProfile[]
+  devices             Device[]
+  notificationSettings NotificationSetting[]
+  weatherWins         WeatherWin[]
+  crowdsourceReports  CrowdsourceReport[]
+  reputation          UserReputation?
+  subscription        Subscription?
+  healthProfile       HealthProfile?
+  commuteRoutes       CommuteRoute[]
+  feedback            Feedback[]
+  webhookSubscriptions WebhookSubscription[]
+
+  @@map("users")
+}
+
+enum Tier {
+  FREE
+  PRO
+  PREMIUM
+  ENTERPRISE
+}
+
+// ── Preferences ──────────────────────────────────────────────
+
+model UserPreferences {
+  userId        String   @id @map("user_id")
+  unitTemp      String   @default("F") @map("units_temp")
+  unitWind      String   @default("mph") @map("units_wind")
+  unitPressure  String   @default("inHg") @map("units_pressure")
+  unitPrecip    String   @default("in") @map("units_precip")
+  unitDistance  String   @default("mi") @map("units_distance")
+  tone          String   @default("straight_facts")
+  theme         String   @default("auto")
+  reducedMotion Boolean  @default(false) @map("reduced_motion")
+  simpleMode    Boolean  @default(false) @map("simple_mode")
+  language      String   @default("en")
+  timezone      String   @default("America/New_York")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+// ── Saved Locations ──────────────────────────────────────────
+
+model SavedLocation {
+  id        String  @id @default(cuid())
+  userId    String  @map("user_id")
+  lat       Float
+  lon       Float
+  name      String
+  nickname  String?
+  isPrimary Boolean @default(false) @map("is_primary")
+  sortOrder Int     @default(0) @map("sort_order")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("saved_locations")
+}
+
+// ── Activity Profiles ────────────────────────────────────────
+
+model ActivityProfile {
+  id              String  @id @default(cuid())
+  userId          String  @map("user_id")
+  activityType    String  @map("activity_type")
+  enabled         Boolean @default(true)
+  customThresholds Json?  @map("custom_thresholds")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, activityType])
+  @@map("activity_profiles")
+}
+
+// ── Devices ──────────────────────────────────────────────────
+
+model Device {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  platform     String
+  pushToken    String?  @map("push_token")
+  widgetConfig Json?    @map("widget_config")
+  lastActive   DateTime @default(now()) @map("last_active")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("devices")
+}
+
+// ── Notification Settings ────────────────────────────────────
+
+model NotificationSetting {
+  id           String  @id @default(cuid())
+  userId       String  @map("user_id")
+  type         String
+  enabled      Boolean @default(true)
+  quietStart   String? @map("quiet_start")
+  quietEnd     String? @map("quiet_end")
+  toneOverride String? @map("tone_override")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type])
+  @@map("notification_settings")
+}
+
+// ── Weather Wins ─────────────────────────────────────────────
+
+model WeatherWin {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  type        String
+  timestamp   DateTime @default(now())
+  description String
+  forecastRef String?  @map("forecast_ref")
+  shared      Boolean  @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("weather_wins")
+}
+
+// ── Crowdsource Reports ──────────────────────────────────────
+
+model CrowdsourceReport {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  lat         Float
+  lon         Float
+  condition   String
+  photoUrl    String?  @map("photo_url")
+  description String?
+  timestamp   DateTime @default(now())
+  verified    Boolean  @default(false)
+  verifiedBy  String?  @map("verified_by")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("crowdsource_reports")
+}
+
+// ── User Reputation ──────────────────────────────────────────
+
+model UserReputation {
+  userId        String   @id @map("user_id")
+  score         Int      @default(0)
+  badges        Json     @default("[]")
+  verifiedCount Int      @default(0) @map("verified_count")
+  lastReport    DateTime? @map("last_report")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_reputation")
+}
+
+// ── Subscriptions ────────────────────────────────────────────
+
+model Subscription {
+  id                   String    @id @default(cuid())
+  userId               String    @unique @map("user_id")
+  tier                 Tier
+  stripeCustomerId     String?   @map("stripe_customer_id")
+  stripeSubscriptionId String?   @map("stripe_subscription_id")
+  status               String    @default("active")
+  startedAt            DateTime  @default(now()) @map("started_at")
+  expiresAt            DateTime? @map("expires_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+// ── Health Profiles ──────────────────────────────────────────
+
+model HealthProfile {
+  userId              String @id @map("user_id")
+  migraineSensitivity Int    @default(5) @map("migraine_sensitivity")
+  arthritisThreshold  Int    @default(5) @map("arthritis_threshold")
+  pollenTriggers      Json   @default("[]") @map("pollen_triggers")
+  aqiThreshold        Int    @default(101) @map("aqi_threshold")
+  conditions          Json   @default("[]")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("health_profiles")
+}
+
+// ── Commute Routes ───────────────────────────────────────────
+
+model CommuteRoute {
+  id            String @id @default(cuid())
+  userId        String @map("user_id")
+  name          String
+  originLat     Float  @map("origin_lat")
+  originLon     Float  @map("origin_lon")
+  destLat       Float  @map("dest_lat")
+  destLon       Float  @map("dest_lon")
+  mode          String
+  departureTime String @map("departure_time")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("commute_routes")
+}
+
+// ── Feedback ─────────────────────────────────────────────────
+
+model Feedback {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  forecastId String?  @map("forecast_id")
+  rating     String   // thumbs_up, thumbs_down
+  comment    String?
+  timestamp  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("feedback")
+}
+
+// ── Webhook Subscriptions ────────────────────────────────────
+
+model WebhookSubscription {
+  id            String  @id @default(cuid())
+  userId        String  @map("user_id")
+  lat           Float
+  lon           Float
+  conditionType String  @map("condition_type")
+  threshold     Float
+  operator      String  // gt, lt, eq, gte, lte
+  callbackUrl   String  @map("callback_url")
+  active        Boolean @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("webhook_subscriptions")
+}

@@ -127,6 +127,21 @@ export function MapBackground({
       }
     });
 
+    // Pan/zoom the map → auto-update weather for new center (debounced)
+    let moveTimer: ReturnType<typeof setTimeout> | null = null;
+    map.on('moveend', () => {
+      if (moveTimer) clearTimeout(moveTimer);
+      moveTimer = setTimeout(() => {
+        const center = map.getCenter();
+        if (onSpotForecast) {
+          onSpotForecast(
+            Math.round(center.lat * 10000) / 10000,
+            Math.round(center.lng * 10000) / 10000,
+          );
+        }
+      }, 1500); // Wait 1.5s after last pan/zoom before fetching
+    });
+
     leafletMap.current = map;
 
     // Expose controls

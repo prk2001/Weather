@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import type { CurrentConditions, DailyForecast, HourlyForecast } from '@aether/shared';
 import { roundTemp, tempFontWeight, degreesToCompass } from '@aether/weather-core';
 import { scoreActivity } from '@aether/weather-core';
 import { THRESHOLDS } from '@aether/shared';
+import { ShareableCard } from './ShareableCard';
+import { useWeatherStore } from '../../stores/weather';
 
 interface WeatherOverlayProps {
   conditions: CurrentConditions;
@@ -16,6 +19,8 @@ interface WeatherOverlayProps {
  * Not just data — actionable intelligence + personality.
  */
 export function WeatherOverlay({ conditions, daily, hourly, onDayClick, selectedDayIndex }: WeatherOverlayProps) {
+  const [shareActivity, setShareActivity] = useState<{ id: string; icon: string; name: string } | null>(null);
+  const { locationName } = useWeatherStore();
   const temp = roundTemp(conditions.temp);
   const feelsLike = roundTemp(conditions.feelsLike);
   const showFeelsLike = Math.abs(conditions.temp - conditions.feelsLike) >= THRESHOLDS.feelsLikeDelta;
@@ -107,7 +112,9 @@ export function WeatherOverlay({ conditions, daily, hourly, onDayClick, selected
             }}
           >
             {topActivities.map((act) => (
-              <ScoreRing key={act.id} icon={act.icon} score={act.score} />
+              <div key={act.id} onClick={() => setShareActivity({ id: act.id, icon: act.icon, name: ACTIVITY_NAMES[act.id] ?? act.id })} style={{ cursor: 'pointer' }}>
+                <ScoreRing icon={act.icon} score={act.score} />
+              </div>
             ))}
           </div>
         </div>
@@ -201,6 +208,19 @@ export function WeatherOverlay({ conditions, daily, hourly, onDayClick, selected
           94% accuracy
         </span>
       </div>
+
+      {/* Shareable activity card modal */}
+      {shareActivity && (
+        <ShareableCard
+          conditions={conditions}
+          hourly={hourly}
+          activityId={shareActivity.id}
+          activityIcon={shareActivity.icon}
+          activityName={shareActivity.name}
+          locationName={locationName}
+          onClose={() => setShareActivity(null)}
+        />
+      )}
     </div>
   );
 }
@@ -301,6 +321,13 @@ function StatChip({ icon, value, highlight }: { icon: string; value: string; hig
 }
 
 // ── Action Line Engine ───────────────────────────────────────
+
+const ACTIVITY_NAMES: Record<string, string> = {
+  running: 'Running', cycling: 'Cycling', hiking: 'Hiking', golf: 'Golf',
+  dog_walking: 'Dog Walking', photography: 'Photography', gardening: 'Gardening',
+  grilling: 'Grilling', fishing: 'Fishing', stargazing: 'Stargazing',
+  surfing: 'Surfing', wedding: 'Outdoor Wedding', snow_sports: 'Snow Sports',
+};
 
 function generateActionLine(c: CurrentConditions): string {
   if (c.condition === 'thunderstorm' || c.condition === 'severe_thunderstorm')

@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /assets/
+Disallow: /sw.js
+
+# AETHER — Atmospheric Intelligence
+# https://prk2001.github.io/Weather/
+Sitemap: https://prk2001.github.io/Weather/sitemap.xml

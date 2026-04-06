@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="AETHER — Atmospheric Intelligence Platform" />
+    <meta name="theme-color" content="#0b1117" />
+    <!-- Security headers -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-Frame-Options" content="DENY" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://rsms.me; img-src 'self' https: data:; connect-src 'self' https://api.weather.gov https://api.rainviewer.com https://*.basemaps.cartocdn.com https://tilecache.rainviewer.com https://server.arcgisonline.com https://rsms.me; font-src 'self' https://rsms.me;" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/Weather/manifest.json" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="preconnect" href="https://rsms.me/" />
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+    <title>AETHER</title>
+    <script type="module" crossorigin src="/Weather/assets/index-63h0DEFV.js"></script>
+    <link rel="stylesheet" crossorigin href="/Weather/assets/index-CW3ZBFs9.css">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      // Unregister any old service workers that are caching stale files
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for (var i = 0; i < registrations.length; i++) {
+            registrations[i].unregister();
+          }
+        });
+        // Also clear all caches
+        if ('caches' in window) {
+          caches.keys().then(function(names) {
+            for (var i = 0; i < names.length; i++) {
+              caches.delete(names[i]);
+            }
+          });
+        }
+      }
+
+      // ── Anti-scraping & Security ──
+      (function() {
+        'use strict';
+
+        // Disable right-click context menu on production
+        if (location.hostname !== 'localhost') {
+          document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+        }
+
+        // Detect headless browsers / bots
+        var isBot = (
+          navigator.webdriver ||
+          !navigator.languages || navigator.languages.length === 0 ||
+          /HeadlessChrome|PhantomJS|Selenium|puppeteer/i.test(navigator.userAgent)
+        );
+        if (isBot) {
+          document.documentElement.dataset.bot = 'true';
+        }
+
+        // Rate limiter removed — NWS has its own server-side limits
+
+        // Prevent iframe embedding
+        if (window.top !== window.self) {
+          window.top.location = window.self.location;
+        }
+      })();
+    </script>
+  </body>
+</html>

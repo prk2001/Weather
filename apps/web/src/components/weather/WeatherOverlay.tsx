@@ -11,6 +11,7 @@ interface WeatherOverlayProps {
   daily: DailyForecast[];
   hourly: HourlyForecast[];
   onDayClick: (index: number) => void;
+  onShowForecastFan?: () => void;
   selectedDayIndex: number | null;
 }
 
@@ -18,7 +19,7 @@ interface WeatherOverlayProps {
  * AETHER Weather Overlay — our signature panel.
  * Not just data — actionable intelligence + personality.
  */
-export function WeatherOverlay({ conditions, daily, hourly, onDayClick, selectedDayIndex }: WeatherOverlayProps) {
+export function WeatherOverlay({ conditions, daily, hourly, onDayClick, selectedDayIndex, onShowForecastFan }: WeatherOverlayProps) {
   const [shareActivity, setShareActivity] = useState<{ id: string; icon: string; name: string } | null>(null);
   const { locationName } = useWeatherStore();
   const temp = roundTemp(conditions.temp);
@@ -189,10 +190,17 @@ export function WeatherOverlay({ conditions, daily, hourly, onDayClick, selected
           color: 'var(--color-text-muted)',
         }}
       >
-        <span>ECMWF+HRRR blended &middot; Confidence: High</span>
-        <span style={{ color: 'var(--color-severity-green)', fontWeight: 600 }}>
-          94% accuracy
-        </span>
+        <span>ECMWF+HRRR blended</span>
+        <button
+          onClick={onShowForecastFan}
+          style={{
+            background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+            color: 'var(--color-severity-green)', fontWeight: 600, fontSize: '0.6rem',
+            fontFamily: 'inherit', textDecoration: 'underline', textUnderlineOffset: '2px',
+          }}
+        >
+          {'📊'} Confidence: High
+        </button>
       </div>
 
       {/* Shareable activity card modal */}

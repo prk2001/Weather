@@ -12,6 +12,7 @@ import { TripPlanner } from './components/weather/TripPlanner';
 import { StormTracker } from './components/weather/StormTracker';
 import { HealthAqiPanel } from './components/weather/HealthAqiPanel';
 import { MinutePrecip } from './components/weather/MinutePrecip';
+import { ForecastFan } from './components/weather/ForecastFan';
 import { LayerLegend } from './components/map/LayerLegend';
 import type { ForecastModel } from './components/weather/BottomTimeline';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
@@ -33,6 +34,7 @@ export function App() {
   const [showTrip, setShowTrip] = useState(false);
   const [showStormTracker, setShowStormTracker] = useState(false);
   const [showHealthAqi, setShowHealthAqi] = useState(false);
+  const [showForecastFan, setShowForecastFan] = useState(false);
   const mapControlsRef = useRef<MapControls | null>(null);
 
   useEffect(() => {
@@ -90,6 +92,7 @@ export function App() {
           hourly={hourly}
           onDayClick={handleDayClick}
           selectedDayIndex={selectedDayIndex}
+          onShowForecastFan={() => setShowForecastFan(true)}
         />
       )}
 
@@ -127,6 +130,11 @@ export function App() {
           dayIndex={selectedDayIndex}
           onClose={() => { setShowDetail(false); setSelectedDayIndex(null); }}
         />
+      )}
+
+      {/* Forecast confidence fan (Acme-style) */}
+      {showForecastFan && hourly.length > 0 && (
+        <ForecastFan hourly={hourly} onClose={() => setShowForecastFan(false)} />
       )}
 
       {/* Health & AQI panel */}

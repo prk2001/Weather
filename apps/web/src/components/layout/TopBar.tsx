@@ -88,6 +88,38 @@ export function TopBar({ onPremiumClick, onSearch, onTripClick }: TopBarProps) {
           <span style={{ opacity: 0.4, fontSize: '0.75rem' }}>{'🔍'}</span>
           <span style={{ flex: 1, textAlign: 'left' }}>{locationName || 'Search...'}</span>
         </button>
+        {/* One-tap Find My Location — like Windy */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            navigator.geolocation?.getCurrentPosition(
+              (pos) => { onSearch(pos.coords.latitude, pos.coords.longitude); setSearchOpen(false); },
+              () => {},
+              { enableHighAccuracy: true, timeout: 10000 },
+            );
+          }}
+          title="Find my location"
+          style={{
+            position: 'absolute',
+            right: '4px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: '26px',
+            height: '26px',
+            borderRadius: '50%',
+            background: 'var(--color-accent)',
+            border: 'none',
+            color: '#0b1117',
+            fontSize: '0.7rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 1px 4px rgba(45,212,191,0.3)',
+          }}
+        >
+          {'◎'}
+        </button>
 
         {searchOpen && (
           <div

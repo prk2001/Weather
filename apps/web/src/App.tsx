@@ -99,8 +99,8 @@ export function App() {
       {/* Layer color legend */}
       <LayerLegend layer={activeLayer} />
 
-      {/* Minute-by-minute precipitation (Dark Sky style) */}
-      {hourly.length > 0 && current && (
+      {/* Minute-by-minute precipitation — only shows when rain is imminent or active */}
+      {hourly.length > 0 && current && hourly.slice(0, 3).some(h => h.precipProb > 30) && (
         <MinutePrecip hourly={hourly} locationName={useWeatherStore.getState().locationName} />
       )}
 

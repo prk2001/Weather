@@ -74,19 +74,15 @@ export function WeatherOverlay({ conditions, daily, hourly, onDayClick, selected
         </div>
       </div>
 
-      {/* ── Action Line — AETHER's signature ── */}
-      <div
-        style={{
-          padding: '0 var(--space-4) var(--space-3)',
-        }}
-      >
+      {/* ── Action Line — compact ── */}
+      <div style={{ padding: '0 var(--space-4) var(--space-2)' }}>
         <div
           style={{
-            fontSize: '0.78rem',
+            fontSize: '0.7rem',
             color: 'var(--color-accent)',
             fontStyle: 'italic',
-            lineHeight: 1.4,
-            padding: 'var(--space-2) var(--space-3)',
+            lineHeight: 1.3,
+            padding: '4px var(--space-3)',
             background: 'rgba(45, 212, 191, 0.08)',
             borderRadius: 'var(--radius-md)',
             borderLeft: '2px solid var(--color-accent)',
@@ -96,22 +92,12 @@ export function WeatherOverlay({ conditions, daily, hourly, onDayClick, selected
         </div>
       </div>
 
-      {/* ── Go / No-Go + Activity Score Rings — AETHER signature ── */}
+      {/* ── Go/No-Go + Activity Rings — compact single row ── */}
       {topActivities.length > 0 && (
-        <div style={{ padding: '0 var(--space-4) var(--space-3)' }}>
-          {/* Go/No-Go traffic light */}
+        <div style={{ padding: '0 var(--space-4) var(--space-2)', display: 'flex', alignItems: 'center', gap: '6px' }}>
           <GoNoGoIndicator activities={topActivities} />
-
-          {/* Circular score rings */}
-          <div
-            style={{
-              display: 'flex',
-              gap: '8px',
-              marginTop: 'var(--space-2)',
-              justifyContent: 'center',
-            }}
-          >
-            {topActivities.map((act) => (
+          <div style={{ display: 'flex', gap: '4px', marginLeft: 'auto' }}>
+            {topActivities.slice(0, 4).map((act) => (
               <div key={act.id} onClick={() => setShareActivity({ id: act.id, icon: act.icon, name: ACTIVITY_NAMES[act.id] ?? act.id })} style={{ cursor: 'pointer' }}>
                 <ScoreRing icon={act.icon} score={act.score} />
               </div>
@@ -233,30 +219,25 @@ function GoNoGoIndicator({ activities }: { activities: { score: number }[] }) {
   const avgScore = activities.reduce((s, a) => s + a.score, 0) / activities.length;
   const status = avgScore >= 75 ? 'GO' : avgScore >= 45 ? 'MAYBE' : 'NO-GO';
   const color = avgScore >= 75 ? 'var(--color-go)' : avgScore >= 45 ? 'var(--color-maybe)' : 'var(--color-nogo)';
-  const label = avgScore >= 75 ? 'Great for outdoor activities' : avgScore >= 45 ? 'Some activities OK' : 'Stay indoors recommended';
-
   return (
     <div style={{
       display: 'flex',
       alignItems: 'center',
-      gap: '8px',
-      padding: '4px 10px',
+      gap: '5px',
+      padding: '3px 8px',
       borderRadius: 'var(--radius-full)',
       background: `${color}11`,
       border: `1px solid ${color}33`,
     }}>
       <div style={{
-        width: '8px',
-        height: '8px',
+        width: '6px',
+        height: '6px',
         borderRadius: '50%',
         background: color,
-        boxShadow: `0 0 6px ${color}`,
+        boxShadow: `0 0 4px ${color}`,
       }} />
-      <span style={{ fontSize: '0.7rem', fontWeight: 700, color, letterSpacing: '0.05em' }}>
+      <span style={{ fontSize: '0.6rem', fontWeight: 700, color, letterSpacing: '0.05em' }}>
         {status}
-      </span>
-      <span style={{ fontSize: '0.6rem', color: 'var(--color-text-muted)' }}>
-        {label}
       </span>
     </div>
   );
@@ -265,8 +246,8 @@ function GoNoGoIndicator({ activities }: { activities: { score: number }[] }) {
 // ── Circular Score Ring ───────────────────────────────────────
 
 function ScoreRing({ icon, score }: { icon: string; score: number }) {
-  const size = 42;
-  const strokeWidth = 3;
+  const size = 32;
+  const strokeWidth = 2.5;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (score / 100) * circumference;
@@ -298,7 +279,7 @@ function ScoreRing({ icon, score }: { icon: string; score: number }) {
           style={{ transition: 'stroke-dashoffset 0.6s ease' }}
         />
       </svg>
-      <span style={{ fontSize: '1rem', zIndex: 1 }}>{icon}</span>
+      <span style={{ fontSize: '0.8rem', zIndex: 1 }}>{icon}</span>
     </div>
   );
 }

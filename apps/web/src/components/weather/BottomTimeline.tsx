@@ -289,31 +289,35 @@ export function BottomTimeline({ hourly, daily: _daily, activeTab, onTabChange, 
         {/* Spacer */}
         <div style={{ flex: 1 }} />
 
-        {/* Model selector */}
-        <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '3px' }}>
+        {/* Model selector with resolution — like Windy */}
+        <div style={{ fontSize: '0.6rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '2px', flexWrap: 'wrap' }}>
           {([
-            { id: 'blend' as ForecastModel, label: 'Blended', color: '#2dd4bf' },
-            { id: 'gfs' as ForecastModel, label: 'GFS', color: '#60a5fa' },
-            { id: 'hrrr' as ForecastModel, label: 'HRRR', color: '#f87171' },
-            { id: 'nam' as ForecastModel, label: 'NAM', color: '#fbbf24' },
+            { id: 'blend' as ForecastModel, label: 'ECMWF', res: '9km', color: '#2dd4bf' },
+            { id: 'gfs' as ForecastModel, label: 'GFS', res: '22km', color: '#60a5fa' },
+            { id: 'hrrr' as ForecastModel, label: 'HRRR', res: '3km', color: '#f87171' },
+            { id: 'nam' as ForecastModel, label: 'NAM', res: '5km', color: '#fbbf24' },
           ]).map((m) => (
             <button
               key={m.id}
               onClick={() => onModelChange?.(m.id)}
               style={{
-                padding: '2px 8px',
+                padding: '2px 6px',
                 borderRadius: 'var(--radius-sm)',
                 border: 'none',
                 background: activeModel === m.id ? `${m.color}30` : 'rgba(255,255,255,0.04)',
                 color: activeModel === m.id ? m.color : 'var(--color-text-muted)',
                 fontWeight: activeModel === m.id ? 700 : 400,
-                fontSize: '0.6rem',
+                fontSize: '0.55rem',
                 cursor: 'pointer',
                 fontFamily: 'inherit',
                 transition: 'all var(--duration-fast)',
+                display: 'flex',
+                alignItems: 'baseline',
+                gap: '2px',
               }}
             >
-              {m.label}
+              <span>{m.label}</span>
+              <span style={{ fontSize: '0.45rem', opacity: 0.6 }}>{m.res}</span>
             </button>
           ))}
         </div>

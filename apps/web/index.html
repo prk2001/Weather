@@ -23,10 +23,21 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      if ('serviceWorker' in navigator && location.hostname !== 'localhost') {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js');
+      // Unregister any old service workers that are caching stale files
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for (var i = 0; i < registrations.length; i++) {
+            registrations[i].unregister();
+          }
         });
+        // Also clear all caches
+        if ('caches' in window) {
+          caches.keys().then(function(names) {
+            for (var i = 0; i < names.length; i++) {
+              caches.delete(names[i]);
+            }
+          });
+        }
       }
 
       // ── Anti-scraping & Security ──
@@ -48,24 +59,7 @@
           document.documentElement.dataset.bot = 'true';
         }
 
-        // Rate limit NWS API calls client-side
-        var apiCallCount = 0;
-        var apiResetTime = Date.now() + 60000;
-        var origFetch = window.fetch;
-        window.fetch = function(url, opts) {
-          if (typeof url === 'string' && url.includes('api.weather.gov')) {
-            if (Date.now() > apiResetTime) {
-              apiCallCount = 0;
-              apiResetTime = Date.now() + 60000;
-            }
-            apiCallCount++;
-            if (apiCallCount > 60) {
-              console.warn('[AETHER] Rate limit: too many API calls');
-              return Promise.reject(new Error('Rate limited'));
-            }
-          }
-          return origFetch.apply(this, arguments);
-        };
+        // Rate limiter removed — NWS has its own server-side limits
 
         // Prevent iframe embedding
         if (window.top !== window.self) {

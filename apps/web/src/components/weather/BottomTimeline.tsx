@@ -21,6 +21,7 @@ const TABS: { id: ViewTab; label: string; icon: string }[] = [
   { id: 'radar', label: 'Radar', icon: '\u{1F4E1}' },
   { id: 'health', label: 'Health & AQI', icon: '\u{1F33F}' },
   { id: 'activities', label: 'Activities', icon: '\u{1F3C3}' },
+  { id: 'storms', label: 'Storms', icon: '\u{1F6E1}\uFE0F' },
 ];
 
 export function BottomTimeline({ hourly, daily: _daily, activeTab, onTabChange, activeModel = 'blend', onModelChange }: BottomTimelineProps) {

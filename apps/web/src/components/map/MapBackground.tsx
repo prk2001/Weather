@@ -24,17 +24,14 @@ export interface MapControls {
 // ── Tile layer URLs ──────────────────────────────────────────
 // ── Free tile sources (no API key required) ─────────────────
 
-// Base maps + labels
+// Base maps — using OSM which supports zoom 0-19 everywhere without "Zoom Level Not Supported"
 const BASE_MAPS: Record<string, string> = {
-  dark: 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',
-  light: 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',
+  dark: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   satellite_base: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
 };
-const BASE_LABELS = 'https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png';
-// const LIGHT_LABELS = 'https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png';
 
-/* OpenWeatherMap tile layers — uncomment when API key is available
-const OWM_KEY = 'YOUR_KEY_HERE';
+// OpenWeatherMap tile layers — real weather data heatmaps
+const OWM_KEY = '44b2f6cf4619f41dc555df49f5080fad';
 const OWM_TILES = {
   temp: `https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${OWM_KEY}`,
   wind: `https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=${OWM_KEY}`,
@@ -42,7 +39,6 @@ const OWM_TILES = {
   precip: `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${OWM_KEY}`,
   pressure: `https://tile.openweathermap.org/map/pressure_new/{z}/{x}/{y}.png?appid=${OWM_KEY}`,
 };
-*/
 
 // RainViewer — free real-time radar and satellite IR composites (global, updated every 10 min)
 const RAINVIEWER_API = 'https://api.rainviewer.com/public/weather-maps.json';
@@ -65,14 +61,24 @@ export function MapBackground({
     satellite: string | null;
   }>({ radar: null, satellite: null });
 
-  // Fetch RainViewer tile URLs on mount (free, no API key)
+  // All radar frames for animation (past + nowcast)
+  const [radarFrames, setRadarFrames] = useState<{ path: string; time: number }[]>([]);
+  const [currentFrame, setCurrentFrame] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const animIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Fetch RainViewer tile URLs + all frames on mount
   useEffect(() => {
     fetch(RAINVIEWER_API)
       .then((r) => r.json())
       .then((data) => {
-        const radarFrames = data?.radar?.past;
+        const pastFrames: { path: string; time: number }[] = data?.radar?.past ?? [];
+        const nowcastFrames: { path: string; time: number }[] = data?.radar?.nowcast ?? [];
+        const allFrames = [...pastFrames, ...nowcastFrames];
+        setRadarFrames(allFrames);
+
         const satFrames = data?.satellite?.infrared;
-        const latestRadar = radarFrames?.[radarFrames.length - 1];
+        const latestRadar = allFrames[allFrames.length - 1];
         const latestSat = satFrames?.[satFrames.length - 1];
         setRainviewerTiles({
           radar: latestRadar
@@ -82,9 +88,34 @@ export function MapBackground({
             ? `https://tilecache.rainviewer.com${latestSat.path}/256/{z}/{x}/{y}/0/0_0.png`
             : null,
         });
+        // Start at the last past frame (current time)
+        setCurrentFrame(pastFrames.length - 1);
       })
-      .catch(() => { /* offline fallback — map renders without weather overlay */ });
+      .catch(() => { /* offline fallback */ });
   }, []);
+
+  // Animation playback
+  useEffect(() => {
+    if (isPlaying && radarFrames.length > 0) {
+      animIntervalRef.current = setInterval(() => {
+        setCurrentFrame((prev) => (prev + 1) % radarFrames.length);
+      }, 500);
+    }
+    return () => {
+      if (animIntervalRef.current) clearInterval(animIntervalRef.current);
+    };
+  }, [isPlaying, radarFrames.length]);
+
+  // Update radar overlay tile URL when frame changes
+  useEffect(() => {
+    if (radarFrames.length > 0 && radarFrames[currentFrame]) {
+      const frame = radarFrames[currentFrame]!;
+      setRainviewerTiles((prev) => ({
+        ...prev,
+        radar: `https://tilecache.rainviewer.com${frame.path}/256/{z}/{x}/{y}/2/1_1.png`,
+      }));
+    }
+  }, [currentFrame, radarFrames]);
 
   // Initialize Leaflet map
   useEffect(() => {
@@ -94,7 +125,7 @@ export function MapBackground({
       center: [lat, lon],
       zoom: 7,
       minZoom: 3,
-      maxZoom: 15,
+      maxZoom: 19,
       zoomControl: false,
       attributionControl: false,
       dragging: true,
@@ -104,21 +135,20 @@ export function MapBackground({
       keyboard: false,
     });
 
-    // Dark base map — cap at native zoom 15 to avoid "Zoom Level Not Supported" tiles
-    L.tileLayer(BASE_MAPS.dark!, {
-      subdomains: 'abcd',
-      maxNativeZoom: 15,
-      maxZoom: 15,
-      errorTileUrl: 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',
-    }).addTo(map);
+    // Create a custom pane for base tiles so we can darken them without affecting weather overlays
+    map.createPane('basePane');
+    const basePane = map.getPane('basePane');
+    if (basePane) {
+      basePane.style.zIndex = '100';
+      basePane.style.filter = 'invert(1) hue-rotate(180deg) brightness(0.8) contrast(1.2) saturate(0.3)';
+    }
 
-    // Labels on top
-    L.tileLayer(BASE_LABELS, {
-      subdomains: 'abcd',
-      maxNativeZoom: 15,
-      maxZoom: 15,
-      errorTileUrl: 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',
-      pane: 'overlayPane',
+    // OSM base map — supports zoom 0-19 everywhere, no "Zoom Level Not Supported"
+    L.tileLayer(BASE_MAPS.dark!, {
+      subdomains: 'abc',
+      maxZoom: 19,
+      attribution: '',
+      pane: 'basePane',
     }).addTo(map);
 
     // Location marker
@@ -144,24 +174,24 @@ export function MapBackground({
       }
     });
 
-    // Pan/zoom the map → auto-update weather for new center (debounced)
-    // Pan/zoom → auto-update weather (debounced, US-only)
-    let moveTimer: ReturnType<typeof setTimeout> | null = null;
-    map.on('moveend', () => {
-      if (moveTimer) clearTimeout(moveTimer);
-      moveTimer = setTimeout(() => {
-        const center = map.getCenter();
-        // Only fetch if within approximate US/territories bounds
-        // NWS API only covers US — skip ocean/foreign locations
-        const inUS = center.lat >= 24 && center.lat <= 50
-          && center.lng >= -125 && center.lng <= -66;
-        if (onSpotForecast && inUS) {
-          onSpotForecast(
-            Math.round(center.lat * 10000) / 10000,
-            Math.round(center.lng * 10000) / 10000,
-          );
-        }
-      }, 3000);
+    // Map is freely explorable — click to get weather for a specific spot
+
+    // GLOBAL zoom handler: hide entire overlay pane when zoomed past tile limits
+    // This is the bulletproof fix — CSS visibility hides everything instantly
+    map.on('zoomend', () => {
+      const z = map.getZoom();
+      const overlayPane = map.getPane('overlayPane');
+      // Weather tiles fail above zoom 12 — hide them entirely
+      if (z > 12) {
+        if (overlayPane) overlayPane.style.opacity = '0';
+        // Also hide any weather tile layers in the tile pane
+        const weatherTiles = document.querySelectorAll('.leaflet-tile-pane .leaflet-layer:not(:first-child)');
+        weatherTiles.forEach((el) => { (el as HTMLElement).style.display = 'none'; });
+      } else {
+        if (overlayPane) overlayPane.style.opacity = '1';
+        const weatherTiles = document.querySelectorAll('.leaflet-tile-pane .leaflet-layer:not(:first-child)');
+        weatherTiles.forEach((el) => { (el as HTMLElement).style.display = ''; });
+      }
     });
 
     leafletMap.current = map;
@@ -182,9 +212,15 @@ export function MapBackground({
     };
   }, []);
 
-  // Update map center when location changes
+  // Only re-center map when user explicitly searches a new location
+  // (not on every weather data refresh from clicking the map)
+  const lastSearchRef = useRef('');
   useEffect(() => {
-    leafletMap.current?.setView([lat, lon], 7, { animate: true });
+    const key = `${lat.toFixed(2)},${lon.toFixed(2)}`;
+    if (key !== lastSearchRef.current) {
+      lastSearchRef.current = key;
+      leafletMap.current?.setView([lat, lon], 7, { animate: true });
+    }
   }, [lat, lon]);
 
   // Switch weather overlay layer
@@ -192,73 +228,92 @@ export function MapBackground({
     const map = leafletMap.current;
     if (!map) return;
 
-    // Remove all previous overlays
+    // Remove all previous overlays and zoom handler
     const prevOverlays = (map as unknown as Record<string, L.TileLayer[]>)._aetherOverlays ?? [];
     for (const ol of prevOverlays) {
-      map.removeLayer(ol);
+      if (map.hasLayer(ol)) map.removeLayer(ol);
     }
+    const prevZoomHandler = (map as unknown as Record<string, () => void>)._aetherZoomHandler;
+    if (prevZoomHandler) map.off('zoomend', prevZoomHandler);
     overlayRef.current = null;
 
     // Each layer gets DISTINCT visuals — not just the same radar tiles
     const overlays: { url: string; opacity: number }[] = [];
-    // CSS filter applied to tile pane to change color treatment per layer
-    let tileFilter = '';
+    // Layer-specific visuals determined by tile selection below
 
     switch (layer) {
       case 'radar':
-        // Standard radar: green/yellow/red precipitation returns
+        // RainViewer radar — real-time precipitation returns
         if (rainviewerTiles.radar) overlays.push({ url: rainviewerTiles.radar, opacity: 0.8 });
-        tileFilter = 'saturate(1.3)';
+
         break;
       case 'satellite':
-        // ESRI satellite photos as base + RainViewer satellite IR clouds on top
-        // This shows real earth imagery with visible cloud cover
+        // ESRI satellite imagery + cloud IR overlay
         overlays.push({ url: BASE_MAPS.satellite_base!, opacity: 0.85 });
-        if (rainviewerTiles.satellite) overlays.push({ url: rainviewerTiles.satellite, opacity: 0.55 });
-        tileFilter = 'brightness(1.05) contrast(1.15) saturate(0.9)';
+        if (rainviewerTiles.satellite) overlays.push({ url: rainviewerTiles.satellite, opacity: 0.5 });
+
         break;
       case 'wind':
-        // No tile overlay — canvas wind animation provides the visual
-        // Dim the base map and add green/blue tint like Windy's wind view
-        tileFilter = 'brightness(0.5) saturate(0.8) sepia(0.2) hue-rotate(120deg)';
+        // OWM wind speed heatmap + canvas particles on top
+        overlays.push({ url: OWM_TILES.wind, opacity: 0.85 });
+
         break;
       case 'rain':
-        // Radar with blue/purple tint for precipitation focus
-        if (rainviewerTiles.radar) overlays.push({ url: rainviewerTiles.radar, opacity: 0.85 });
-        tileFilter = 'saturate(1.5) hue-rotate(20deg)';
+        // OWM precipitation intensity + RainViewer radar composite
+        overlays.push({ url: OWM_TILES.precip, opacity: 0.8 });
+        if (rainviewerTiles.radar) overlays.push({ url: rainviewerTiles.radar, opacity: 0.4 });
+
         break;
       case 'temperature':
-        // NO radar — just the temperature gradient overlay on dark map
-        tileFilter = 'brightness(0.6)';
+        // OWM temperature heatmap — the colorful one
+        overlays.push({ url: OWM_TILES.temp, opacity: 0.85 });
+
         break;
       case 'clouds':
-        // Satellite IR — cloud formations in grayscale/blue
-        if (rainviewerTiles.satellite) overlays.push({ url: rainviewerTiles.satellite, opacity: 0.9 });
-        tileFilter = 'saturate(0.5) brightness(1.2)';
+        // OWM cloud cover + RainViewer satellite IR
+        overlays.push({ url: OWM_TILES.clouds, opacity: 0.8 });
+        if (rainviewerTiles.satellite) overlays.push({ url: rainviewerTiles.satellite, opacity: 0.3 });
+
         break;
     }
 
-    // Apply CSS filter to make each layer look different
-    const tilePane = map.getPane('tilePane');
-    if (tilePane) {
-      tilePane.style.filter = tileFilter;
-    }
+    // tileFilter no longer applied — weather overlays show natural colors
+    // Base map darkening is handled by the custom basePane filter
 
-    // Add overlay tile layers
-    const tileLayers: L.TileLayer[] = [];
+    // Add overlay tile layers with zoom-based visibility
+    const tileLayers: { layer: L.TileLayer; maxZoom: number }[] = [];
     for (const ov of overlays) {
       const isRV = ov.url.includes('rainviewer');
+      const isOWM = ov.url.includes('openweathermap');
+      const safeMaxZoom = isRV ? 11 : isOWM ? 14 : 18;
       const tl = L.tileLayer(ov.url, {
         opacity: ov.opacity,
-        maxNativeZoom: isRV ? 12 : 15,
-        maxZoom: 15,
+        maxZoom: safeMaxZoom,
         errorTileUrl: 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',
       });
-      tl.addTo(map);
-      tileLayers.push(tl);
+      // Only add if current zoom is within safe range
+      if (map.getZoom() <= safeMaxZoom) {
+        tl.addTo(map);
+      }
+      tileLayers.push({ layer: tl, maxZoom: safeMaxZoom });
     }
-    if (tileLayers[0]) overlayRef.current = tileLayers[0];
-    (map as unknown as Record<string, L.TileLayer[]>)._aetherOverlays = tileLayers;
+
+    // Hide/show overlays based on zoom level — prevents "Zoom Level Not Supported"
+    const onZoom = () => {
+      const z = map.getZoom();
+      for (const { layer: tl, maxZoom: mz } of tileLayers) {
+        if (z > mz && map.hasLayer(tl)) {
+          map.removeLayer(tl);
+        } else if (z <= mz && !map.hasLayer(tl)) {
+          tl.addTo(map);
+        }
+      }
+    };
+    map.on('zoomend', onZoom);
+
+    if (tileLayers[0]) overlayRef.current = tileLayers[0].layer;
+    (map as unknown as Record<string, L.TileLayer[]>)._aetherOverlays = tileLayers.map(t => t.layer);
+    (map as unknown as Record<string, () => void>)._aetherZoomHandler = onZoom;
   }, [layer, rainviewerTiles]);
 
   // Weather effects overlay
@@ -305,6 +360,68 @@ export function MapBackground({
       {isRaining && <RainOverlay intensity={condition === 'heavy_rain' ? 3 : 1} />}
       {isSnowing && <SnowOverlay />}
 
+      {/* Radar animation time scrubber */}
+      {radarFrames.length > 1 && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '46px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 20,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '6px 14px',
+            background: 'var(--color-surface)',
+            backdropFilter: 'var(--blur-panel)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius-full)',
+            pointerEvents: 'auto',
+          }}
+        >
+          {/* Play/Pause */}
+          <button
+            onClick={() => setIsPlaying(!isPlaying)}
+            style={{
+              background: 'none', border: 'none', color: 'var(--color-text)',
+              fontSize: '0.9rem', cursor: 'pointer', padding: '0 2px',
+            }}
+          >
+            {isPlaying ? '⏸' : '▶️'}
+          </button>
+
+          {/* Time scrubber */}
+          <input
+            type="range"
+            min={0}
+            max={radarFrames.length - 1}
+            value={currentFrame}
+            onChange={(e) => { setIsPlaying(false); setCurrentFrame(Number(e.target.value)); }}
+            style={{
+              width: '180px',
+              accentColor: 'var(--color-accent)',
+              cursor: 'pointer',
+            }}
+          />
+
+          {/* Current time label */}
+          <span style={{
+            fontSize: '0.65rem',
+            fontWeight: 600,
+            color: currentFrame >= radarFrames.length - (radarFrames.length > 12 ? 6 : 0)
+              ? 'var(--color-accent)' : 'var(--color-text)',
+            fontFeatureSettings: "'tnum' on",
+            minWidth: '55px',
+            textAlign: 'center',
+          }}>
+            {radarFrames[currentFrame]
+              ? new Date(radarFrames[currentFrame]!.time * 1000).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+              : '--'}
+          </span>
+        </div>
+      )}
+
       {/* Subtle vignette */}
       <div
         style={{
@@ -317,10 +434,9 @@ export function MapBackground({
         }}
       />
 
-      {/* Override leaflet default styles for dark theme */}
+      {/* Hide attribution, dark background */}
       <style>{`
         .leaflet-container { background: #0a0e17 !important; }
-        .leaflet-tile-pane { filter: saturate(1.2) brightness(0.95); }
         .leaflet-control-attribution { display: none !important; }
       `}</style>
     </div>

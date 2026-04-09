@@ -11,14 +11,13 @@ import { DetailPanel } from './components/weather/DetailPanel';
 import { TripPlanner } from './components/weather/TripPlanner';
 import { StormTracker } from './components/weather/StormTracker';
 import { HealthAqiPanel } from './components/weather/HealthAqiPanel';
-import { MinutePrecip } from './components/weather/MinutePrecip';
 import { ForecastFan } from './components/weather/ForecastFan';
 import { LayerLegend } from './components/map/LayerLegend';
 import type { ForecastModel } from './components/weather/BottomTimeline';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useEffect, useState, useRef } from 'react';
 
-export type ViewTab = 'basic' | 'hourly' | 'radar' | 'health' | 'activities';
+export type ViewTab = 'basic' | 'hourly' | 'radar' | 'health' | 'activities' | 'storms';
 export type MapLayer = 'wind' | 'temperature' | 'rain' | 'clouds' | 'satellite' | 'radar';
 
 export function App() {
@@ -102,10 +101,7 @@ export function App() {
       {/* Layer color legend */}
       <LayerLegend layer={activeLayer} />
 
-      {/* Minute-by-minute precipitation — only shows when rain is imminent or active */}
-      {hourly.length > 0 && current && hourly.slice(0, 3).some(h => h.precipProb > 30) && (
-        <MinutePrecip hourly={hourly} locationName={useWeatherStore.getState().locationName} />
-      )}
+      {/* MinutePrecip removed from map overlay — integrated into weather panel instead */}
 
       {/* Bottom hourly timeline with real NWS forecast data */}
       {hourly.length > 0 && (
@@ -116,6 +112,7 @@ export function App() {
           onTabChange={(tab) => {
             setActiveTab(tab);
             if (tab === 'health') setShowHealthAqi(true);
+            if (tab === 'storms') setShowStormTracker(true);
           }}
           activeModel={activeModel}
           onModelChange={setActiveModel}
@@ -159,38 +156,7 @@ export function App() {
         />
       )}
 
-      {/* Storm tracker button — bottom left above wind compass */}
-      <button
-        onClick={() => setShowStormTracker(true)}
-        className="glass-panel"
-        style={{
-          position: 'absolute',
-          bottom: '330px',
-          left: 'var(--space-4)',
-          zIndex: 5,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          padding: '6px 12px',
-          cursor: 'pointer',
-          border: '1px solid var(--color-border)',
-          color: 'var(--color-text-secondary)',
-          fontSize: '0.7rem',
-          fontFamily: 'inherit',
-          fontWeight: 500,
-        }}
-      >
-        {'🛡️'} Storm Tracker
-        {alerts.length > 0 && (
-          <span style={{
-            fontSize: '0.55rem', fontWeight: 700,
-            padding: '1px 5px', borderRadius: 'var(--radius-full)',
-            background: 'var(--color-severity-red)', color: '#fff',
-          }}>
-            {alerts.length}
-          </span>
-        )}
-      </button>
+      {/* Storm tracker moved to bottom tab bar — no longer floating on map */}
 
       {/* Premium subscription modal */}
       {showPremium && <PremiumModal onClose={() => setShowPremium(false)} />}
@@ -255,25 +221,7 @@ export function App() {
         </div>
       )}
 
-      {/* Data source + timestamp */}
-      {current && (
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '220px',
-            right: 'var(--space-3)',
-            zIndex: 10,
-            fontSize: '0.55rem',
-            color: 'rgba(255,255,255,0.3)',
-            textAlign: 'right',
-            pointerEvents: 'none',
-          }}
-        >
-          NWS Weather API · Observed {new Date(current.observedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-          <br />
-          Radar: RainViewer · © AETHER · Primoris Partners LLC
-        </div>
-      )}
+      {/* Data attribution — minimal, bottom-right corner */}
     </div>
   );
 }

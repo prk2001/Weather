@@ -7,6 +7,12 @@
       "runtimeArgs": ["--filter", "@aether/web", "dev"],
       "port": 3000,
       "autoPort": true
+    },
+    {
+      "name": "findsafe-web",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["/Users/patrickkennedy/Dev/findsafe/apps/web/start-dev.sh"],
+      "port": 3050
     }
   ]
 }

@@ -21,6 +21,7 @@ interface WeatherOverlayProps {
  */
 export function WeatherOverlay({ conditions, daily, hourly, onDayClick, selectedDayIndex, onShowForecastFan }: WeatherOverlayProps) {
   const [shareActivity, setShareActivity] = useState<{ id: string; icon: string; name: string } | null>(null);
+  const [collapsed, setCollapsed] = useState(false);
   const { locationName } = useWeatherStore();
   const temp = roundTemp(conditions.temp);
   const feelsLike = roundTemp(conditions.feelsLike);
@@ -35,6 +36,36 @@ export function WeatherOverlay({ conditions, daily, hourly, onDayClick, selected
     ? getTopActivities(hourly[0]!)
     : [];
 
+  // ── Collapsed mini view ──
+  if (collapsed) {
+    return (
+      <button
+        onClick={() => setCollapsed(false)}
+        className="glass-panel"
+        style={{
+          position: 'absolute',
+          bottom: '46px',
+          left: 'var(--space-4)',
+          zIndex: 21,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '8px 14px',
+          cursor: 'pointer',
+          border: '1px solid var(--color-border)',
+          fontFamily: 'inherit',
+          color: 'var(--color-text)',
+          animation: 'fadeIn var(--duration-normal) var(--ease-out)',
+        }}
+      >
+        <span style={{ fontSize: '1.5rem', fontWeight, fontFeatureSettings: "'tnum' on" }}>{temp}°</span>
+        <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>{conditionLabel}</span>
+        <span style={{ fontSize: '0.6rem', color: 'var(--color-text-muted)', marginLeft: '4px' }}>▼</span>
+      </button>
+    );
+  }
+
+  // ── Full view ──
   return (
     <div
       className="glass-panel"
@@ -49,11 +80,26 @@ export function WeatherOverlay({ conditions, daily, hourly, onDayClick, selected
         animation: 'fadeIn var(--duration-normal) var(--ease-out)',
       }}
     >
+      {/* Collapse button */}
+      <button
+        onClick={() => setCollapsed(true)}
+        style={{
+          position: 'absolute', top: '6px', right: '6px', zIndex: 2,
+          width: '22px', height: '22px', borderRadius: '50%',
+          background: 'rgba(255,255,255,0.08)', border: 'none',
+          color: 'var(--color-text-muted)', fontSize: '0.6rem',
+          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}
+        title="Collapse panel"
+      >
+        ▲
+      </button>
+
       {/* ── Main temperature + condition ── */}
-      <div style={{ padding: 'var(--space-4) var(--space-4) var(--space-2)' }}>
+      <div style={{ padding: 'var(--space-3) var(--space-4) var(--space-2)' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: '3.8rem', fontWeight, lineHeight: 1, fontFeatureSettings: "'tnum' on", letterSpacing: '-0.02em' }}>
+            <div style={{ fontSize: '3rem', fontWeight, lineHeight: 1, fontFeatureSettings: "'tnum' on", letterSpacing: '-0.02em' }}>
               {temp}°
             </div>
             <div style={{ fontSize: '0.85rem', fontWeight: 500, marginTop: '4px', color: 'var(--color-text)' }}>
